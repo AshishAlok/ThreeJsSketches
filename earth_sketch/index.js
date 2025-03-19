@@ -8,7 +8,7 @@ const w = window.innerWidth;
 const h = window.innerHeight;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 1000);
-camera.position.z = 5;
+camera.position.z = 10;
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(w, h);
 document.body.appendChild(renderer.domElement);
@@ -18,7 +18,7 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 
 const earthGroup = new THREE.Group();
 earthGroup.rotation.z = -23.4 * Math.PI / 180;
-scene.add(earthGroup);
+earthGroup.position.x = 15;
 new OrbitControls(camera, renderer.domElement);
 const detail = 12;
 const loader = new THREE.TextureLoader();
@@ -29,7 +29,12 @@ const material = new THREE.MeshPhongMaterial({
   bumpMap: loader.load("./textures/01_earthbump1k.jpg"),
   bumpScale: 0.04,
 });
-// material.map.colorSpace = THREE.SRGBColorSpace;
+
+// Create a Solar System Group
+const solarSystemGroup = new THREE.Group();
+scene.add(solarSystemGroup);
+solarSystemGroup.add(earthGroup);
+
 const earthMesh = new THREE.Mesh(geometry, material);
 earthGroup.add(earthMesh);
 
@@ -57,20 +62,50 @@ const glowMesh = new THREE.Mesh(geometry, fresnelMat);
 glowMesh.scale.setScalar(1.01);
 earthGroup.add(glowMesh);
 
-const stars = getStarfield({numStars: 2000});
+const stars = getStarfield({numStars: 8000});
 scene.add(stars);
 
-const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
-sunLight.position.set(-2, 0.5, 1.5);
-scene.add(sunLight);
+const light = new THREE.DirectionalLight(0xffffff, 2.0);
+light.position.set(-2, 0.5, 1.5);
+// scene.add(light);
+
+// Create the Sun Group
+const sunGroup = new THREE.Group();
+solarSystemGroup.add(sunGroup);
+
+// Sun Geometry & Material
+const sunGeometry = new THREE.SphereGeometry(3.5, 32, 32); // Bigger than Earth
+const sunMaterial = new THREE.MeshStandardMaterial({
+  // map: loader.load("./textures/sun_texture.jpg"),
+  emissive: 0xff5500,
+  emissiveMap: loader.load("./textures/sun_texture.jpg"), // Helps make the texture "glow"
+  emissiveIntensity: 3.0, // Increase intensity
+});
+const sunGlowMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff8800,
+  transparent: true,
+  opacity: 0.5,
+  blending: THREE.AdditiveBlending,
+});
+const sunGlowMesh = new THREE.Mesh(new THREE.SphereGeometry(3.7, 32, 32), sunGlowMaterial);
+sunGroup.add(sunGlowMesh);
+
+const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+sunGroup.add(sunMesh);
+
+// Sun Light (PointLight instead of DirectionalLight)
+const sunLight = new THREE.PointLight(0xffffff, 300, 1000, 1.7); // (color, intensity, distance, decay)
+sunLight.position.set(0, 0, 0); // The light is inside the Sun
+sunGroup.add(sunLight);
+
+
 
 function animate() {
   requestAnimationFrame(animate);
 
-  earthMesh.rotation.y += 0.002;
-  lightsMesh.rotation.y += 0.002;
-  cloudsMesh.rotation.y += 0.0023;
-  glowMesh.rotation.y += 0.002;
+  sunGroup.rotation.y += 0.001;
+  earthGroup.rotation.y += 0.002;
+  cloudsMesh.rotation.y += 0.001;
   stars.rotation.y -= 0.0002;
   renderer.render(scene, camera);
 }
