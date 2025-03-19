@@ -1,4 +1,4 @@
 # getting-started-with-threejs
-run : 
+run :   
 $ npm init -y  
 $ npm install three
